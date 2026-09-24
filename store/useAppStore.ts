@@ -17,6 +17,14 @@ interface AppState {
   isCameraOn: boolean;
   setIsCameraOn: (on: boolean) => void;
 
+  // true = mirrored ("looking in a mirror," the familiar/comfortable view).
+  // false = true orientation — how the camera actually sees you, i.e. how
+  // everyone else sees you. Toggling between the two over time is the point:
+  // it's a deliberate self-perception exercise, not just a display setting.
+  isMirrored: boolean;
+  setIsMirrored: (mirrored: boolean) => void;
+  toggleMirrored: () => void;
+
   isRecording: boolean;
   setIsRecording: (on: boolean) => void;
 
@@ -42,6 +50,10 @@ export const useAppStore = create<AppState>((set) => ({
 
   isCameraOn: false,
   setIsCameraOn: (on) => set({ isCameraOn: on }),
+
+  isMirrored: true,
+  setIsMirrored: (mirrored) => set({ isMirrored: mirrored }),
+  toggleMirrored: () => set((s) => ({ isMirrored: !s.isMirrored })),
 
   isRecording: false,
   setIsRecording: (on) => set({ isRecording: on }),

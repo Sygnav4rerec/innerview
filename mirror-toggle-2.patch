@@ -1,0 +1,152 @@
+diff --git a/app/page.tsx b/app/page.tsx
+index 5133cde..a837870 100644
+--- a/app/page.tsx
++++ b/app/page.tsx
+@@ -24,6 +24,8 @@ export default function Home() {
+   const toggleSidebar = useAppStore((s) => s.toggleSidebar);
+   const isCameraOn = useAppStore((s) => s.isCameraOn);
+   const setIsCameraOn = useAppStore((s) => s.setIsCameraOn);
++  const isMirrored = useAppStore((s) => s.isMirrored);
++  const toggleMirrored = useAppStore((s) => s.toggleMirrored);
+   const isRecording = useAppStore((s) => s.isRecording);
+   const setIsRecording = useAppStore((s) => s.setIsRecording);
+   const pipOpen = useAppStore((s) => s.pipOpen);
+@@ -83,8 +85,11 @@ export default function Home() {
+       <Sidebar open={sidebarOpen} />
+ 
+       <main className="relative flex-1 bg-black">
+-        {/* Camera fills the stage — the user's reflection is the focal point. */}
+-        <CameraFeed enabled={isCameraOn} onStreamChange={setCameraStream} />
++        {/* Camera fills the stage — the user's reflection is the focal point.
++            `mirrored` only flips the live preview (see FloatingControls'
++            "Mirror view"/"True view" toggle); recordings are always saved
++            in the camera's true, unmirrored orientation. */}
++        <CameraFeed enabled={isCameraOn} mirrored={isMirrored} onStreamChange={setCameraStream} />
+ 
+         {/* Script overlays the bottom third when the camera is on (karaoke-style,
+             over a semi-transparent gradient); falls back to a full centered stage
+@@ -124,6 +129,8 @@ export default function Home() {
+           onTargetWPMChange={setTargetWPM}
+           isCameraOn={isCameraOn}
+           onToggleCamera={() => setIsCameraOn(!isCameraOn)}
++          isMirrored={isMirrored}
++          onToggleMirrored={toggleMirrored}
+           isRecording={isRecording}
+           isProcessing={recorder.isProcessing}
+           onToggleRecord={handleRecordToggle}
+diff --git a/components/camera/CameraFeed.tsx b/components/camera/CameraFeed.tsx
+index 6464199..1bcdba0 100644
+--- a/components/camera/CameraFeed.tsx
++++ b/components/camera/CameraFeed.tsx
+@@ -5,15 +5,22 @@ import { useCamera } from "@/hooks/useCamera";
+ 
+ interface CameraFeedProps {
+   enabled: boolean;
++  /**
++   * true = mirrored (the familiar "looking in a mirror" view).
++   * false = true orientation, matching how the camera — and everyone else —
++   * actually sees you. Purely a CSS flip of the live preview; the
++   * underlying MediaStream (and anything recorded from it) is untouched.
++   */
++  mirrored: boolean;
+   onStreamChange?: (stream: MediaStream | null) => void;
+ }
+ 
+ /**
+- * Mirrored (horizontally flipped) camera feed as the full-stage background —
+- * the user's reflection is the focal point. The script overlays on top of
+- * it in the bottom third (see ScriptStage's "overlay" variant).
++ * Camera feed as the full-stage background — the user's reflection is the
++ * focal point. The script overlays on top of it in the bottom third (see
++ * ScriptStage's "overlay" variant).
+  */
+-export function CameraFeed({ enabled, onStreamChange }: CameraFeedProps) {
++export function CameraFeed({ enabled, mirrored, onStreamChange }: CameraFeedProps) {
+   const { videoRef, stream, error, ready } = useCamera(enabled);
+ 
+   useEffect(() => {
+@@ -24,7 +31,13 @@ export function CameraFeed({ enabled, onStreamChange }: CameraFeedProps) {
+ 
+   return (
+     <div className="absolute inset-0 z-0 bg-black">
+-      <video ref={videoRef} autoPlay muted playsInline className="h-full w-full scale-x-[-1] object-cover" />
++      <video
++        ref={videoRef}
++        autoPlay
++        muted
++        playsInline
++        className={["h-full w-full object-cover", mirrored ? "scale-x-[-1]" : ""].join(" ")}
++      />
+       {error && (
+         <div className="absolute inset-0 flex items-center justify-center bg-black/90 p-6 text-center text-sm text-red-300">
+           {error}
+diff --git a/components/layout/FloatingControls.tsx b/components/layout/FloatingControls.tsx
+index 37745f4..5505bbe 100644
+--- a/components/layout/FloatingControls.tsx
++++ b/components/layout/FloatingControls.tsx
+@@ -14,6 +14,8 @@ interface FloatingControlsProps {
+   onTargetWPMChange: (wpm: number) => void;
+   isCameraOn: boolean;
+   onToggleCamera: () => void;
++  isMirrored: boolean;
++  onToggleMirrored: () => void;
+   isRecording: boolean;
+   isProcessing: boolean;
+   onToggleRecord: () => void;
+@@ -40,6 +42,8 @@ export function FloatingControls(props: FloatingControlsProps) {
+     onTargetWPMChange,
+     isCameraOn,
+     onToggleCamera,
++    isMirrored,
++    onToggleMirrored,
+     isRecording,
+     isProcessing,
+     onToggleRecord,
+@@ -99,6 +103,17 @@ export function FloatingControls(props: FloatingControlsProps) {
+           {isCameraOn ? "Camera on" : "Camera off"}
+         </button>
+ 
++        <button
++          onClick={onToggleMirrored}
++          disabled={!isCameraOn}
++          title="Recording always captures the true (unmirrored) orientation, regardless of this toggle"
++          className={`rounded-full px-3 py-2 text-xs ${
++            isCameraOn ? "bg-white/10 text-neutral-300 hover:bg-white/20" : "cursor-not-allowed bg-white/5 text-neutral-500"
++          }`}
++        >
++          {isMirrored ? "Mirror view" : "True view"}
++        </button>
++
+         <RecordButton
+           isRecording={isRecording}
+           isProcessing={isProcessing}
+diff --git a/store/useAppStore.ts b/store/useAppStore.ts
+index 03ff1c4..9724402 100644
+--- a/store/useAppStore.ts
++++ b/store/useAppStore.ts
+@@ -17,6 +17,14 @@ interface AppState {
+   isCameraOn: boolean;
+   setIsCameraOn: (on: boolean) => void;
+ 
++  // true = mirrored ("looking in a mirror," the familiar/comfortable view).
++  // false = true orientation — how the camera actually sees you, i.e. how
++  // everyone else sees you. Toggling between the two over time is the point:
++  // it's a deliberate self-perception exercise, not just a display setting.
++  isMirrored: boolean;
++  setIsMirrored: (mirrored: boolean) => void;
++  toggleMirrored: () => void;
++
+   isRecording: boolean;
+   setIsRecording: (on: boolean) => void;
+ 
+@@ -43,6 +51,10 @@ export const useAppStore = create<AppState>((set) => ({
+   isCameraOn: false,
+   setIsCameraOn: (on) => set({ isCameraOn: on }),
+ 
++  isMirrored: true,
++  setIsMirrored: (mirrored) => set({ isMirrored: mirrored }),
++  toggleMirrored: () => set((s) => ({ isMirrored: !s.isMirrored })),
++
+   isRecording: false,
+   setIsRecording: (on) => set({ isRecording: on }),
+ 

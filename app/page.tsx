@@ -24,6 +24,8 @@ export default function Home() {
   const toggleSidebar = useAppStore((s) => s.toggleSidebar);
   const isCameraOn = useAppStore((s) => s.isCameraOn);
   const setIsCameraOn = useAppStore((s) => s.setIsCameraOn);
+  const isMirrored = useAppStore((s) => s.isMirrored);
+  const toggleMirrored = useAppStore((s) => s.toggleMirrored);
   const isRecording = useAppStore((s) => s.isRecording);
   const setIsRecording = useAppStore((s) => s.setIsRecording);
   const pipOpen = useAppStore((s) => s.pipOpen);
@@ -83,8 +85,11 @@ export default function Home() {
       <Sidebar open={sidebarOpen} />
 
       <main className="relative flex-1 bg-black">
-        {/* Camera fills the stage — the user's reflection is the focal point. */}
-        <CameraFeed enabled={isCameraOn} onStreamChange={setCameraStream} />
+        {/* Camera fills the stage — the user's reflection is the focal point.
+            `mirrored` only flips the live preview (see FloatingControls'
+            "Mirror view"/"True view" toggle); recordings are always saved
+            in the camera's true, unmirrored orientation. */}
+        <CameraFeed enabled={isCameraOn} mirrored={isMirrored} onStreamChange={setCameraStream} />
 
         {/* Script overlays the bottom third when the camera is on (karaoke-style,
             over a semi-transparent gradient); falls back to a full centered stage
@@ -124,6 +129,8 @@ export default function Home() {
           onTargetWPMChange={setTargetWPM}
           isCameraOn={isCameraOn}
           onToggleCamera={() => setIsCameraOn(!isCameraOn)}
+          isMirrored={isMirrored}
+          onToggleMirrored={toggleMirrored}
           isRecording={isRecording}
           isProcessing={recorder.isProcessing}
           onToggleRecord={handleRecordToggle}

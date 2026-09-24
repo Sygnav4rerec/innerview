@@ -14,6 +14,8 @@ interface FloatingControlsProps {
   onTargetWPMChange: (wpm: number) => void;
   isCameraOn: boolean;
   onToggleCamera: () => void;
+  isMirrored: boolean;
+  onToggleMirrored: () => void;
   isRecording: boolean;
   isProcessing: boolean;
   onToggleRecord: () => void;
@@ -40,6 +42,8 @@ export function FloatingControls(props: FloatingControlsProps) {
     onTargetWPMChange,
     isCameraOn,
     onToggleCamera,
+    isMirrored,
+    onToggleMirrored,
     isRecording,
     isProcessing,
     onToggleRecord,
@@ -97,6 +101,17 @@ export function FloatingControls(props: FloatingControlsProps) {
           } hover:bg-white/20`}
         >
           {isCameraOn ? "Camera on" : "Camera off"}
+        </button>
+
+        <button
+          onClick={onToggleMirrored}
+          disabled={!isCameraOn}
+          title="Recording always captures the true (unmirrored) orientation, regardless of this toggle"
+          className={`rounded-full px-3 py-2 text-xs ${
+            isCameraOn ? "bg-white/10 text-neutral-300 hover:bg-white/20" : "cursor-not-allowed bg-white/5 text-neutral-500"
+          }`}
+        >
+          {isMirrored ? "Mirror view" : "True view"}
         </button>
 
         <RecordButton
