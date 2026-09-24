@@ -32,6 +32,8 @@ export default function Home() {
   const setPipOpen = useAppStore((s) => s.setPipOpen);
   const pipUrl = useAppStore((s) => s.pipUrl);
   const setPipUrl = useAppStore((s) => s.setPipUrl);
+  const pipMirrored = useAppStore((s) => s.pipMirrored);
+  const togglePipMirrored = useAppStore((s) => s.togglePipMirrored);
 
   const engine = useTeleprompterEngine(script, targetWPM, isPlaying);
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
@@ -101,7 +103,15 @@ export default function Home() {
           variant={isCameraOn ? "overlay" : "stage"}
         />
 
-        {pipOpen && <PiPWindow url={pipUrl} onUrlChange={setPipUrl} onClose={() => setPipOpen(false)} />}
+        {pipOpen && (
+          <PiPWindow
+            url={pipUrl}
+            onUrlChange={setPipUrl}
+            onClose={() => setPipOpen(false)}
+            mirrored={pipMirrored}
+            onToggleMirror={togglePipMirrored}
+          />
+        )}
 
         {recorder.downloadUrl && (
           <a

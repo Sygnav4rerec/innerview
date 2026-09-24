@@ -8,6 +8,10 @@ interface PiPWindowProps {
   url: string;
   onUrlChange: (url: string) => void;
   onClose: () => void;
+  /** Flips the loaded clip horizontally — independent of the camera's own
+   * mirror toggle. Just an option; no claims about what it does for anyone. */
+  mirrored: boolean;
+  onToggleMirror: () => void;
 }
 
 /**
@@ -21,13 +25,14 @@ interface PiPWindowProps {
  * no download of third-party video is offered here; the user's own
  * rehearsal recording downloads separately as MP4 (see useRecorder).
  */
-export function PiPWindow({ url, onUrlChange, onClose }: PiPWindowProps) {
+export function PiPWindow({ url, onUrlChange, onClose, mirrored, onToggleMirror }: PiPWindowProps) {
   const { position, dragHandleProps } = useDraggable({ x: 32, y: 32 });
   const [draft, setDraft] = useState(url);
   const [videoFailed, setVideoFailed] = useState(false);
 
   const { platform, kind, embedUrl } = resolveEmbed(url);
   const showSlackGuidance = platform === "slack" && kind === "unsupported";
+  const hasPlayableContent = Boolean(embedUrl) && !videoFailed;
 
   const changeLink = () => {
     setDraft("");
@@ -45,9 +50,21 @@ export function PiPWindow({ url, onUrlChange, onClose }: PiPWindowProps) {
         {...dragHandleProps}
       >
         <span className="text-xs font-medium text-neutral-300">Reference video</span>
-        <button onClick={onClose} className="text-neutral-400 hover:text-white" aria-label="Close reference video">
-          ✕
-        </button>
+        <div className="flex items-center gap-3">
+          {hasPlayableContent && (
+            <button
+              onClick={onToggleMirror}
+              className={mirrored ? "text-white" : "text-neutral-400 hover:text-white"}
+              aria-label={mirrored ? "Unflip reference video" : "Flip reference video horizontally"}
+              title="Flip horizontally"
+            >
+              ⇄
+            </button>
+          )}
+          <button onClick={onClose} className="text-neutral-400 hover:text-white" aria-label="Close reference video">
+            ✕
+          </button>
+        </div>
       </div>
 
       <div className="min-h-0 flex-1 p-3">
@@ -58,13 +75,13 @@ export function PiPWindow({ url, onUrlChange, onClose }: PiPWindowProps) {
                 <video
                   src={embedUrl}
                   controls
-                  className="h-full w-full object-contain"
+                  className={["h-full w-full object-contain", mirrored ? "scale-x-[-1]" : ""].join(" ")}
                   onError={() => setVideoFailed(true)}
                 />
               ) : (
                 <iframe
                   src={embedUrl}
-                  className="h-full w-full"
+                  className={["h-full w-full", mirrored ? "scale-x-[-1]" : ""].join(" ")}
                   allow="autoplay; encrypted-media; picture-in-picture"
                   allowFullScreen
                 />

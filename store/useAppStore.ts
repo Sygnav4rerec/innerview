@@ -32,6 +32,13 @@ interface AppState {
   setPipOpen: (open: boolean) => void;
   pipUrl: string;
   setPipUrl: (url: string) => void;
+
+  // Independent of the camera's mirror toggle — flips the PiP reference
+  // clip itself (useful for third-party material, e.g. educational videos,
+  // where the user wants to view it laterally flipped). Just an option, no
+  // claims attached to what it does for anyone.
+  pipMirrored: boolean;
+  togglePipMirrored: () => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -62,4 +69,7 @@ export const useAppStore = create<AppState>((set) => ({
   setPipOpen: (open) => set({ pipOpen: open }),
   pipUrl: "",
   setPipUrl: (url) => set({ pipUrl: url }),
+
+  pipMirrored: false,
+  togglePipMirrored: () => set((s) => ({ pipMirrored: !s.pipMirrored })),
 }));
