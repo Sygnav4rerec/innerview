@@ -54,6 +54,7 @@ export function PiPWindow({ url, onUrlChange, onClose, mirrored, onToggleMirror 
           {hasPlayableContent && (
             <button
               onClick={onToggleMirror}
+              onPointerDown={(e) => e.stopPropagation()}
               className={mirrored ? "text-white" : "text-neutral-400 hover:text-white"}
               aria-label={mirrored ? "Unflip reference video" : "Flip reference video horizontally"}
               title="Flip horizontally"
@@ -61,7 +62,12 @@ export function PiPWindow({ url, onUrlChange, onClose, mirrored, onToggleMirror 
               ⇄
             </button>
           )}
-          <button onClick={onClose} className="text-neutral-400 hover:text-white" aria-label="Close reference video">
+          <button
+            onClick={onClose}
+            onPointerDown={(e) => e.stopPropagation()}
+            className="text-neutral-400 hover:text-white"
+            aria-label="Close reference video"
+          >
             ✕
           </button>
         </div>
